@@ -1,0 +1,36 @@
+---
+name: component-extractor
+version: 1.0
+trigger: /api/extract/components
+description: Rules for extracting structured component and I/O data from schematics
+---
+
+# Skill: Component Extractor
+
+## Extraction Rules
+- Extract every identifiable component, including passive components (terminals,
+  cable ducts, DIN rail) if they carry a designation
+- Populate all fields where data is visible; use "" for unknowns
+- Do not infer or assume values not shown in the drawing
+- If the same designation appears across multiple pages, merge into one record
+  and list all pages in the "pages" field
+
+## Manufacturer Detection
+Detect manufacturers from:
+- Logo or name printed on component symbol or adjacent label
+- Part number prefix (e.g. A9Fxxxxx = Schneider, 3RV2xxx = Siemens, 1SBLxxx = ABB)
+- Component catalogue reference blocks
+- Bill of materials blocks embedded in the drawing
+
+## I/O Signal Extraction
+- Signal type: DI (discrete input), DO (discrete output), AI (analogue input),
+  AO (analogue output), PI (pulse input)
+- Extract PLC rack/slot/channel address where visible
+- Preserve exact tag number — do not reformat
+- For interposing relays, note both the field tag and relay designation
+
+## Quality Checks
+- Flag duplicate designations
+- Flag I/O signals without a PLC address
+- Flag components where manufacturer could not be determined
+- Include "dataQuality": "high" | "medium" | "low" based on legibility and completeness

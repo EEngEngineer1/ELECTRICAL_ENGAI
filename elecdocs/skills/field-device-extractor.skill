@@ -1,0 +1,44 @@
+---
+name: field-device-extractor
+version: 1.0
+trigger: /api/extract/fielddevices
+description: Extracts all field-mounted devices from schematics with wiring and signal context
+---
+
+# Skill: Field Device Extractor
+
+## Definition of a Field Device
+A field device is any physical device installed in the field (outside the control panel)
+that is electrically connected to the control or power system. This includes:
+- Measurement devices: pressure transmitters, flow meters, temperature elements,
+  level switches, position sensors, speed sensors
+- Detection devices: flame detectors, gas detectors, smoke detectors, proximity switches
+- Final elements: control valves, solenoid valves, motorised dampers, on/off valves
+- Drive equipment: motors, variable speed drives (field termination side)
+- Local controls: local control stations, local push-button panels, field junction boxes
+
+Do NOT classify as field devices: panel-internal components (contactors, relays, MCBs
+within the panel), terminal blocks, cable or trunking, PLC/DCS racks or cards.
+
+## Tag Number Identification
+- Tag numbers follow ISA 5.1 format (e.g. PT-101, FCV-201, TE-301) or project-specific format
+- If no tag is shown, record "untagged" and note the device description and page reference
+- Where a P&ID tag differs from the electrical drawing tag, record both and flag the discrepancy
+
+## Fail State
+Where shown on the drawing, record the device fail state:
+- "FC" — fail closed
+- "FO" — fail open
+- "FL" — fail last
+- "FS" — fail safe (application-specific)
+- "" — not shown
+
+## Process Variable Mapping
+Map device types to process variables:
+- PT/PIT/PSH/PSL → Pressure
+- FT/FIC/FCV → Flow
+- TT/TI/TE/TCV → Temperature
+- LT/LI/LSH/LSL → Level
+- XV/ZV/HV → Position/On-Off
+- MOV/GV → Valve/Actuator
+- M/MT → Motor

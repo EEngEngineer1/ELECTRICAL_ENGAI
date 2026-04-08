@@ -1,0 +1,59 @@
+---
+name: gap-analysis-reporter
+version: 1.0
+trigger: /api/crossref/analyse, /api/export/gapreport
+description: Governs compliance gap analysis, conflict classification, and AI-suggested alternatives
+---
+
+# Skill: Gap Analysis Reporter
+
+## Cross-Reference Logic
+For each requirement from URS and FDS, assess against schematic evidence:
+- "met" — schematic clearly satisfies the requirement
+- "partial" — schematic partially addresses the requirement
+- "not_met" — no evidence in schematic for this requirement
+- "conflict" — schematic contradicts a requirement, or two requirements contradict each other
+
+## Instrumentation Coverage Assessment
+As part of gap analysis, include a dedicated instrumentation coverage section:
+- List every instrument from the FDS/URS instrumentation list
+- For each: report coverageStatus, matching schematic tag (if any), and any discrepancy
+- Summarise: X of Y specified instruments found in schematic (Z%)
+- Flag safety-critical instruments with "missing" status as severity "critical"
+
+## Conflict Classification
+- "critical": safety requirement not met, regulatory non-compliance, safety-critical
+  instrument missing from schematic, hardwired safety function missing or incorrect
+- "major": functional requirement not met that would prevent system operation,
+  non-safety instrument missing from schematic
+- "minor": documentation gap, desirable requirement not met, minor specification mismatch
+
+## AI Suggestion Rules
+- Always cite the specific requirement ID being addressed
+- Reference relevant standards (IEC, BS, ISO) where applicable
+- Propose the minimal change to resolve the gap
+- Where multiple options exist, present as Option A / Option B with pros/cons
+- Never suggest reducing safety requirements to resolve a conflict
+- Flag any suggestion requiring client approval or regulatory submission
+- Use [INFERRED] for any conclusion not directly evidenced in source documents
+
+## Gap Report Structure (Word export — 13 sections)
+1. Cover page
+2. Executive Summary (Claude-generated, max 300 words)
+3. Document Register
+4. Overall Compliance Score by category
+5. Requirements Cross-Reference Matrix
+6. Conflict Detail Sections (one per conflict, sorted critical → major → minor)
+7. Instrumentation Coverage Summary
+8. Field Device Coverage
+9. Recommended Actions (prioritised by severity)
+10. Appendix A: Full component list
+11. Appendix B: Full I/O reconciliation table
+12. Appendix C: Full instrumentation list with coverage status
+13. Appendix D: Full field device list
+
+## Tone & Style
+- Professional engineering report style, UK English
+- No speculative language — only assert what is evidenced
+- Clearly distinguish schematic evidence from AI inference
+- Use [INFERRED] tag where conclusions go beyond direct evidence

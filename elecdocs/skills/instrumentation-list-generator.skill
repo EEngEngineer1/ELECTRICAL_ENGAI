@@ -1,0 +1,43 @@
+---
+name: instrumentation-list-generator
+version: 1.0
+trigger: /api/instruments/generate
+description: Parses FDS/URS documents to extract a complete list of required instruments
+---
+
+# Skill: Instrumentation List Generator
+
+## Source Document Reading
+Read the FDS and/or URS and extract every instrument, sensor, transmitter, detector,
+switch, or field device that is specified, required, or referenced. Search in:
+- Explicit instrument schedules or tables within the document
+- Control loop descriptions (e.g. "a 4-20mA pressure transmitter shall be installed...")
+- Interlock and safety requirement sections referencing field devices
+- Process descriptions naming measurement or actuation points
+- Cause-and-effect matrices where initiators or final elements are named
+- I/O schedules embedded in the FDS
+
+## Instrument Identification Rules
+- Prefer ISA 5.1 tag format (PT-101, FCV-201); if not present, assign INST-NNN
+- Extract the clause or section reference where the instrument is first mentioned
+- Mark as safety_critical = true if the instrument is part of:
+  - An Emergency Shut Down (ESD) function
+  - A Safety Instrumented Function (SIF)
+  - A fire and gas detection system
+  - A hardwired interlock
+  - Any requirement referencing SIL, PLr, IEC 61508, IEC 62061, ISO 13849
+
+## Coverage Status
+Set coverageStatus = "unverified" for all instruments on generation.
+The cross-reference engine will update this field to:
+- "matched" — exact tag found in schematic field device list, type consistent
+- "tag_only" — tag found but device type or signal type differs
+- "description_match" — no exact tag match but equivalent device found semantically
+- "missing" — no corresponding device found in schematic
+- "extra_in_schematic" — field device in schematic with no FDS/URS instrument entry
+
+## Quality Notes
+- If an instrument appears in both URS and FDS with conflicting specifications,
+  flag with notes: "Conflict between URS clause X and FDS clause Y — [detail]"
+- If a tag appears in an instrument schedule table but not in the narrative,
+  include it and note the source as "schedule only"

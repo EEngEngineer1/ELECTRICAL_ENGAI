@@ -1,0 +1,51 @@
+---
+name: urs-fds-parser
+version: 1.0
+trigger: /api/upload/requirements, /api/crossref/analyse
+description: Parses URS and FDS documents into a structured numbered requirement list
+---
+
+# Skill: URS/FDS Requirement Parser
+
+## Document Structure Recognition
+Detect and adapt to any of:
+- Numbered clause hierarchy (1.0, 1.1, 1.1.1...)
+- Table-based requirements (Req ID | Description | Priority | Verification)
+- Free prose with embedded "shall" statements
+- Hybrid: prose sections followed by tabulated requirements
+
+## Requirement Extraction Rules
+- Extract every "shall" statement as a discrete requirement
+- Assign sequential IDs (URS-001... or FDS-001...) if not already numbered
+- Preserve original clause reference alongside assigned ID
+- Classify each requirement:
+  - "functional" — system must do X
+  - "performance" — system must achieve X within Y
+  - "safety" — hardwired, SIL-rated, or regulatory requirement
+  - "interface" — connection to external system
+  - "documentation" — deliverable requirement
+- Extract verification method if stated: "test" | "inspection" | "review" | "analysis"
+
+## Priority / Criticality
+- "mandatory" — shall, must, is required
+- "desirable" — should, is recommended, where possible
+- "safety_critical" — references SIL, PLr, E-stop, interlock, ATEX, functional safety,
+  IEC 61508, IEC 62061, ISO 13849
+
+## Output JSON Structure
+{
+  "documentType": "URS" | "FDS",
+  "documentRef": "...",
+  "revision": "...",
+  "requirements": [
+    {
+      "id": "URS-001",
+      "clauseRef": "3.2.1",
+      "text": "The system shall provide a hardwired emergency stop...",
+      "classification": "safety",
+      "priority": "safety_critical",
+      "verificationMethod": "test",
+      "notes": ""
+    }
+  ]
+}

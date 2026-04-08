@@ -1,0 +1,20 @@
+appId: com.enertherm.elecdocs
+productName: ElecDocs
+directories:
+  output: dist-electron
+files:
+  - server/**/*
+  - client/dist/**/*
+  - electron/**/*
+  - skills/**/*
+  - node_modules/**/*
+  - package.json
+win:
+  target: nsis
+  icon: assets/icon.ico
+mac:
+  target: dmg
+  icon: assets/icon.icns
+linux:
+  target: AppImage
+  icon: assets/icon.png

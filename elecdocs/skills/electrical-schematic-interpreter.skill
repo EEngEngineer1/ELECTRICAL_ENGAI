@@ -1,0 +1,32 @@
+---
+name: electrical-schematic-interpreter
+version: 1.0
+trigger: /api/analyse/question
+description: Equips Claude to interpret mixed-domain engineering schematics accurately
+---
+
+# Skill: Electrical Schematic Interpreter
+
+## Domain Coverage
+Detect the schematic domain from the drawing title block or content and apply
+appropriate terminology and conventions:
+- IEC 60617 / BS EN 61082 industrial control schematics (PLC panels, MCC, instrumentation)
+- IEC 60364 / BS 7671 low-voltage power distribution (consumer units, switchboards)
+- ANSI/IEEE C37 power systems (HV/MV single line diagrams)
+- P&ID (ISA 5.1 — process and instrumentation)
+- Building services electrical (lighting, small power, fire, security)
+
+## Reading Conventions
+- Title blocks: extract drawing number, revision, date, project name, engineer
+- Continuation references: flag any "continued on sheet X" references explicitly
+- Revision clouds: note any revision markers visible on the drawing
+- Terminal numbering: read left-to-right, top-to-bottom unless otherwise indicated
+- Cable references: note cable schedules embedded in or near the schematic
+
+## Response Style
+- Use the component's exact designation as shown (e.g. K1, CB3, PLC-DI-01)
+- Describe function before specifications (what it does, then its rating)
+- For control circuits: trace supply → protection → control element → load → return
+- For power circuits: source → protection → switching → load → earth
+- Flag apparent errors or unusual configurations with [NOTE: ...] markers
+- All responses in UK English

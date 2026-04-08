@@ -1,0 +1,27 @@
+---
+name: io-list-extractor
+version: 1.0
+trigger: /api/extract/components (when ioListText is provided)
+description: Parses supplied I/O list documents and reconciles against schematic signals
+---
+
+# Skill: I/O List Extractor & Reconciler
+
+## Document Parsing
+- Identify the I/O list table even if embedded within a larger document
+- Handle multi-column formats: tag | description | type | PLC address | panel | cable
+- Handle merged cells — propagate parent cell values to child rows
+- Strip header/footer repetition from multi-page tables
+
+## Reconciliation Logic
+Match on tag number (exact match preferred; flag near-matches for review).
+For each signal, return one of:
+- "match" — tag and signal type agree in both sources
+- "type_mismatch" — tag found in both but signal type differs
+- "schematic_only" — tag in schematic, not in I/O list
+- "iolist_only" — tag in I/O list, not in schematic
+- "address_conflict" — PLC address differs between sources
+
+## Output
+Return reconciliation results under a "reconciliation" key,
+with "status" and "detail" per signal.
