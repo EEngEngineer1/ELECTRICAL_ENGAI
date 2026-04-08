@@ -1,0 +1,29 @@
+What are we trying to do:
+
+Aim: Analyse electrical schematics and break them down on a component by component basis explaining their significance and why they are connecting in a particular way. 
+     Comment on the organisational structure of the system and explain decisions - why they are connected in that way and what their contribution to the system is.
+	 
+What makes it hard to understand?
+Structure
+Clicking around - can lose track.
+	 
+What would be needed:
+
+Right now:
+A program capable of checking a pdf file of an electrical schematic and answering topical questions about the images to help break it down into understandable language.
+Uses the list of components to aid the analysis and explanation.
+Extract information and put it into a digestable format.
+Highlight in different colours Manufacturers and display part numbers and connections when clicked (makes it easier to see).
+
+Later:
+Cross references the FDS and URS requirement files and displays whether needs in both, just one, or neither have been met. 
+Highlights the area of any conflict if it is arrising
+Suggests alternatives with data to back its decisions, shows how this would be an improvement and meets needs.
+
+Prompt Draft:
+Design a program which is able to take a pdf file of an electrical schematic and decompose it into an easy to understand format for someone with little to no prior knowledge of electrical diagrams to boost understanding and make it more accessible.
+The program should read the file and use the list of components provided to create explanations of what they are and what their significance is to the system. This should be done using other resources which list what components do.
+The program should also be able to answer questions about why specific component choices may have been made and their purpose. This should also include other questions. All should be answerable by an AI bot acting as an electrical engineer.
+The program should also display this information in a modern format, tabulating information to make comparison easier between various diagrams.
+Generate a field devices list, so we can verify that all devices specified in the FDS (Functional Design Specification) or URS (User Requirements Specification) are included in the electrical design.
+Create an instrumentation list, allowing us to confirm that all specified instruments are reflected in the drawings.
