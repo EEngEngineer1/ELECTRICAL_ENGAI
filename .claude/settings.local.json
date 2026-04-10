@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://generativelanguage.googleapis.com/v1beta/models?key=AIzaSyBvxHIRPjJe-NJYnyp8TDQYfgvO4-d4-t4\")",
+      "Bash(python -c ':*)",
+      "Bash(curl -s -m 30 -X POST http://localhost:3001/api/analyse/suggestions -H 'Content-Type: application/json' -d '{\"uploadId\":\"e0d66ef6-a412-4def-a8a3-1eb918709bd2\"}')"
+    ]
+  }
+}
