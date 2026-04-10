@@ -1,7 +1,16 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import pdfParse from 'pdf-parse';
-import { fromPath } from 'pdf2pic';
+
+// Ensure Ghostscript is on PATH at module load
+const GS_DIR = 'C:/Program Files/gs/gs10.07.0/bin';
+if (existsSync(GS_DIR) && !(process.env.PATH || '').includes('gs10')) {
+  process.env.PATH = (process.env.PATH || '') + `;${GS_DIR}`;
+}
 
 /**
  * Resolves the DPI to use for rasterising a schematic PDF page.
@@ -118,7 +127,7 @@ export async function extractText(filePath) {
  * @returns {{pageWidthPt: number, pageHeightPt: number}}
  */
 function parsePageDimensions(buffer) {
-  const pdfStr = buffer.toString('latin1');
+  const pdfStr = buffer.slice(0, 10240).toString('latin1');
   const mediaBoxMatch = pdfStr.match(/\/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\]/);
 
   if (mediaBoxMatch) {
@@ -145,28 +154,46 @@ function parsePageDimensions(buffer) {
  * @param {number|null} userDpi
  * @returns {Promise<{pages: string[], dpiUsed: number}>}
  */
+// Auto-detect GraphicsMagick path
+const GM_PATHS = [
+  'C:/Program Files/GraphicsMagick-1.3.45-Q16/gm.exe',
+  'C:/Program Files (x86)/GraphicsMagick-1.3.45-Q16/gm.exe'
+];
+const GM_EXE = GM_PATHS.find(p => existsSync(p)) || 'gm';
+
 export async function rasterisePages(filePath, pageWidthPt, pageHeightPt, pageCount, userDpi = null) {
   const dpiMax = calculateDpiMax(pageWidthPt, pageHeightPt);
   let dpi = resolveDpi(pageWidthPt, pageHeightPt, pageCount, userDpi);
+  if (dpi > dpiMax) dpi = dpiMax;
 
-  // Clamp to dpiMax
-  if (dpi > dpiMax) {
-    dpi = dpiMax;
+  // Ensure Ghostscript is findable
+  const gsDir = 'C:/Program Files/gs/gs10.07.0/bin';
+  if (existsSync(gsDir) && !process.env.PATH.includes(gsDir)) {
+    process.env.PATH += `;${gsDir}`;
   }
 
-  const converter = fromPath(filePath, {
-    density: dpi,
-    format: 'jpeg',
-    width: Math.round((pageWidthPt / 72) * dpi),
-    height: Math.round((pageHeightPt / 72) * dpi),
-    saveFilename: 'page',
-    savePath: join(process.cwd(), 'server', 'uploads', 'tmp')
-  });
-
+  const tmpDir = join(__dirname, '..', 'uploads', 'tmp');
+  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
   const pages = [];
-  for (let i = 1; i <= pageCount; i++) {
-    const result = await converter(i, { responseType: 'base64' });
-    pages.push(result.base64);
+
+  for (let i = 0; i < pageCount; i++) {
+    const outFile = join(tmpDir, `page-${Date.now()}-${i}.jpg`).replace(/\\/g, '/');
+    const inFile = filePath.replace(/\\/g, '/');
+    const cmd = `"${GM_EXE}" convert -density ${dpi} "PDF:${inFile}[${i}]" -quality 85 "${outFile}"`;
+    try {
+      execSync(cmd, { timeout: 90000, stdio: 'pipe' });
+      if (existsSync(outFile)) {
+        const buf = readFileSync(outFile);
+        pages.push(buf.toString('base64'));
+        unlinkSync(outFile);
+      } else {
+        pages.push('');
+      }
+    } catch (err) {
+      console.error(`Rasterise page ${i} failed:`, err.message?.substring(0, 200));
+      if (err.stderr) console.error('stderr:', err.stderr.toString().substring(0, 300));
+      pages.push('');
+    }
   }
 
   return { pages, dpiUsed: dpi };

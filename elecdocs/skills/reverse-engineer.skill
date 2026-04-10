@@ -1,0 +1,71 @@
+---
+name: reverse-engineer
+version: 1.0
+trigger: /api/reverseengineer/analyse
+description: Reverse engineers a schematic into system description, structured data, design intent, and suggested specification
+---
+
+# Skill: Reverse Engineer
+
+## Your Task
+Analyse the electrical schematic and all provided extraction data to produce four outputs.
+Return ONLY a valid JSON object matching the specified structure. No markdown, no preamble.
+
+## Output 1 — System Description
+Write a professional engineering description of the system for someone who has never
+seen it. Cover: what the system is, what it does, how it works, what it contains,
+and any notable design features. Professional prose, UK English.
+
+## Output 2 — Structured Data
+Extract three schedules from the schematic:
+
+Equipment Register: every tagged device (use the already-extracted component and
+field device lists — add any additional devices visible but not captured).
+Fields: tag, description, type, manufacturer, model, location, area, ioRef.
+
+Loop Schedule: every identifiable measurement or control loop.
+Fields: loopNumber, description, processVariable, transmitterTag, controllerRef,
+finalElementTag.
+
+Cable/Signal Schedule: every wired connection visible in the schematic.
+Fields: fromTag, fromTerminal, cableRef, toTag, toTerminal, signalType, notes.
+
+Use "" for any field not visible. Do not invent values.
+
+## Output 3 — Design Intent
+Assess why the system was designed the way it is. Mark all inferences [INFERRED].
+Cover:
+- The engineering problem the system was built to solve
+- Key design decisions and likely reasoning (be specific, not generic)
+- Safety priorities evident from the design
+- Likely operational environment inferred from component ratings
+- Any non-standard choices that warrant questioning
+
+## Output 4 — Suggested Specification
+Generate draft URS and FDS reconstructed from schematic evidence.
+These are working drafts — mark with [INFERRED] throughout.
+
+Suggested URS: write each requirement as a "shall" statement with:
+reqId (URS-001...), text, classification (functional/performance/safety/interface),
+priority (mandatory/desirable/safety_critical), evidence (what in the schematic
+supports this requirement).
+
+Suggested FDS prose: system overview, control philosophy, I/O description,
+alarm and interlock logic, power supply design, special requirements.
+
+## Cross-Page Tracing
+Schematics span multiple pages. Trace connections across pages using:
+- Wire numbers (same number on different pages = electrically connected)
+- Continuation references (e.g. &EFS/70.3F points to page 70, grid F)
+- Terminal strips (e.g. XD4:1 appears on schematic and terminal diagram pages)
+- Cable references (e.g. 70WD01 links field device to panel)
+- PLC I/O modules on one page connect to field devices on other pages
+
+Build the cable schedule by following these cross-references to trace complete
+signal paths from field device through cabling, terminals, to PLC I/O.
+
+## Evidence and Inference Rules
+- [INFERRED] on any conclusion not directly evidenced in the drawing
+- [NOTE: ...] on anything unclear or partially visible
+- Never invent tag numbers, values, or connections not shown
+- All responses in UK English

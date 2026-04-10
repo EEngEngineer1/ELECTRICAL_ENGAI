@@ -23,6 +23,11 @@ export function createSession(uploadId) {
   return session;
 }
 
+/** Stores arbitrary data under a key (for analysis results). */
+export function setSession(key, data) {
+  sessions.set(key, { ...data, createdAt: Date.now() });
+}
+
 /** Retrieves a session by uploadId. Returns null if not found or expired. */
 export function getSession(uploadId) {
   const session = sessions.get(uploadId);

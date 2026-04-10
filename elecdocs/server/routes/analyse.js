@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { getSession } from '../services/sessionStore.js';
 import { loadSkill } from '../services/skillLoader.js';
-import { answerSchematicQuestion, generateSuggestedQuestions } from '../services/claudeService.js';
+import { answerSchematicQuestion, generateSuggestedQuestions, analyseProcessControl } from '../services/claudeService.js';
+import { setSession } from '../services/sessionStore.js';
 
 const router = Router();
 
@@ -59,6 +60,22 @@ router.post('/suggestions', async (req, res) => {
     res.json({ questions });
   } catch (err) {
     console.error('Suggestions error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/analyse/processcontrol
+router.post('/processcontrol', async (req, res) => {
+  try {
+    const { uploadId } = req.body;
+    const session = getSession(uploadId);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const result = await analyseProcessControl({ extractedText: session.extractedText });
+    setSession(uploadId + '_processcontrol', result);
+    res.json(result);
+  } catch (err) {
+    console.error('Process control error:', err);
     res.status(500).json({ error: err.message });
   }
 });

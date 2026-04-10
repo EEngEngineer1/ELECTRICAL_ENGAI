@@ -30,6 +30,24 @@ const useStore = create((set, get) => ({
   chatHistory: [],
   isStreaming: false,
 
+  // Process control & reverse engineering
+  processControl: null,
+  reverseEngineer: null,
+
+  // P&ID state
+  pnidId: null,
+  pnidPageImages: [],
+  pnidExtractedText: '',
+  pnidPageCount: 0,
+  pnidDpiUsed: 0,
+  pnidDpiMax: 0,
+  pnidPageFormat: '',
+  pnidCurrentPage: 1,
+  pnidAnalysis: null,
+  pnidCrossref: null,
+  pnidUploading: false,
+  pnidAnalysing: false,
+
   // Loading states
   uploading: false,
   extracting: false,
@@ -58,7 +76,34 @@ const useStore = create((set, get) => ({
   setFieldDevices: (data) => set({ fieldDevices: data }),
   setInstruments: (data) => set({ instruments: data }),
   setComplianceMatrix: (data) => set({ complianceMatrix: data }),
+  setProcessControl: (data) => set({ processControl: data }),
+  setReverseEngineer: (data) => set({ reverseEngineer: data }),
+
+  // P&ID actions
+  setPnidUploadData: (data) => set({
+    pnidId: data.pnidId, pnidPageImages: data.pageImages, pnidExtractedText: data.extractedText,
+    pnidPageCount: data.pageCount, pnidDpiUsed: data.dpiUsed, pnidDpiMax: data.dpiMax,
+    pnidPageFormat: data.pageFormat, pnidCurrentPage: 1
+  }),
+  setPnidCurrentPage: (p) => set({ pnidCurrentPage: p }),
+  setPnidAnalysis: (data) => set({ pnidAnalysis: data }),
+  setPnidCrossref: (data) => set({ pnidCrossref: data }),
+  setPnidUploading: (v) => set({ pnidUploading: v }),
+  setPnidAnalysing: (v) => set({ pnidAnalysing: v }),
   setSuggestedQuestions: (q) => set({ suggestedQuestions: q }),
+
+  // Helper: builds common payload with all extracted data for API calls
+  getPayload: () => {
+    const s = get();
+    return {
+      uploadId: s.uploadId,
+      fieldDevices: s.fieldDevices?.fieldDevices || s.fieldDevices || [],
+      components: s.components || [],
+      ioSignals: s.ioSignals || [],
+      instruments: s.instruments?.instruments || s.instruments || [],
+      reqIds: s.reqIds || []
+    };
+  },
 
   addReqId: (reqId, type) => set(state => ({
     reqIds: [...state.reqIds, reqId],
@@ -90,7 +135,10 @@ const useStore = create((set, get) => ({
     components: null, ioSignals: null, fieldDevices: null,
     suggestedQuestions: [], reqIds: [], requirements: [], instruments: null,
     complianceMatrix: null, chatHistory: [], isStreaming: false,
-    uploading: false, extracting: false, analysing: false
+    uploading: false, extracting: false, analysing: false,
+    pnidId: null, pnidPageImages: [], pnidExtractedText: '', pnidPageCount: 0,
+    pnidDpiUsed: 0, pnidDpiMax: 0, pnidPageFormat: '', pnidCurrentPage: 1,
+    pnidAnalysis: null, pnidCrossref: null, pnidUploading: false, pnidAnalysing: false
   })
 }));
 

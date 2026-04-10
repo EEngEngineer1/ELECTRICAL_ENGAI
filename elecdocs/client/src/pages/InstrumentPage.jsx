@@ -1,40 +1,69 @@
+import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore.js';
 import UploadZone from '../components/UploadZone.jsx';
 import InstrumentationTable from '../components/InstrumentationTable.jsx';
 
+function useElapsed(running) {
+  const [elapsed, setElapsed] = useState(0);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (running) { setElapsed(0); ref.current = setInterval(() => setElapsed(s => s + 1), 1000); }
+    else clearInterval(ref.current);
+    return () => clearInterval(ref.current);
+  }, [running]);
+  return elapsed;
+}
+
 export default function InstrumentPage() {
-  const { uploadId, requirements, instruments, setInstruments, reqIds } = useStore();
+  const { uploadId, requirements, instruments, setInstruments, reqIds, fieldDevices, components, getPayload } = useStore();
+  const [generating, setGenerating] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const elapsed = useElapsed(generating || verifying);
 
   const generateInstruments = async () => {
     if (reqIds.length === 0) return;
+    setGenerating(true);
     try {
       const res = await fetch('/api/instruments/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploadId, reqIds })
+        body: JSON.stringify({ ...getPayload() })
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
       setInstruments(data);
     } catch (err) {
       alert('Generation failed: ' + err.message);
+    } finally {
+      setGenerating(false);
     }
   };
 
   const verifyInstruments = async () => {
+    if (!fieldDevices) {
+      alert('Field devices not yet extracted. Go to the Analyse page and click "Extract Components & Devices" first.');
+      return;
+    }
+    setVerifying(true);
     try {
       const res = await fetch('/api/instruments/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploadId, reqIds })
+        body: JSON.stringify({ uploadId, reqIds, fieldDevices: fieldDevices?.fieldDevices || fieldDevices })
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
       setInstruments(data);
     } catch (err) {
       alert('Verification failed: ' + err.message);
+    } finally {
+      setVerifying(false);
     }
   };
 
   const exportReport = async () => {
+    setExporting(true);
     try {
       const res = await fetch('/api/crossref/export/instrumentation', {
         method: 'POST',
@@ -48,11 +77,16 @@ export default function InstrumentPage() {
       a.click();
     } catch (err) {
       alert('Export failed: ' + err.message);
+    } finally {
+      setExporting(false);
     }
   };
 
+  const Spinner = () => <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />;
+  const timer = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto h-full pr-2">
       <div className="flex gap-4 items-start">
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-slate-700 mb-3">Requirements Documents</h2>
@@ -70,17 +104,18 @@ export default function InstrumentPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <button onClick={generateInstruments} disabled={reqIds.length === 0}
+          <button onClick={generateInstruments} disabled={reqIds.length === 0 || generating}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
-            Generate Instrumentation List
+            {generating ? <span className="flex items-center gap-2"><Spinner /> Generating... {timer}</span> : 'Generate Instrumentation List'}
           </button>
-          <button onClick={verifyInstruments} disabled={!instruments}
+          <button onClick={verifyInstruments} disabled={!instruments || !fieldDevices || verifying}
+            title={!fieldDevices ? 'Extract field devices on Analyse page first' : ''}
             className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
-            Verify Coverage
+            {verifying ? <span className="flex items-center gap-2"><Spinner /> Verifying... {timer}</span> : !fieldDevices ? 'Verify (extract devices first)' : 'Verify Coverage'}
           </button>
-          <button onClick={exportReport} disabled={!instruments}
+          <button onClick={exportReport} disabled={!instruments || exporting}
             className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
-            Export Report
+            {exporting ? <span className="flex items-center gap-2"><Spinner /> Exporting...</span> : 'Export Report'}
           </button>
         </div>
       </div>

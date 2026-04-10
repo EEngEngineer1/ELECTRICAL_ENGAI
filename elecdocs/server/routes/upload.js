@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { join, dirname, extname } from 'path';
+import { join, dirname, extname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { extractText, rasterisePages, detectPageFormat, calculateDpiMax } from '../services/pdfService.js';
@@ -12,7 +12,7 @@ import { extractStructuredJSON } from '../services/claudeService.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const upload = multer({
   dest: join(__dirname, '..', 'uploads'),
-  limits: { fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 50) * 1024 * 1024 },
+  limits: { fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 200) * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['.pdf', '.docx'];
     cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
@@ -33,15 +33,20 @@ router.post('/schematic', upload.single('file'), async (req, res) => {
 
     let text, pageCount, pageWidthPt, pageHeightPt, dpiMax, pageFormat, pages, dpiUsed;
 
+    const absFilePath = resolve(req.file.path).replace(/\\/g, '/');
     try {
-      ({ text, pageCount, pageWidthPt, pageHeightPt } = await extractText(req.file.path));
+      ({ text, pageCount, pageWidthPt, pageHeightPt } = await extractText(absFilePath));
       dpiMax = calculateDpiMax(pageWidthPt, pageHeightPt);
       pageFormat = detectPageFormat(pageWidthPt, pageHeightPt);
       const userDpi = req.body.dpi ? parseInt(req.body.dpi, 10) : null;
-      ({ pages, dpiUsed } = await rasterisePages(req.file.path, pageWidthPt, pageHeightPt, pageCount, userDpi));
+      const rasterResult = await rasterisePages(absFilePath, pageWidthPt, pageHeightPt, pageCount, userDpi);
+      pages = rasterResult.pages;
+      dpiUsed = rasterResult.dpiUsed;
+      // If all pages are empty, something went wrong silently
+      if (pages.every(p => !p)) throw new Error('All pages rasterised as empty');
     } catch (pdfErr) {
       // Fallback mock mode — use extracted text only, generate placeholder image
-      console.warn('PDF rasterisation failed (Ghostscript missing?), using mock mode:', pdfErr.message);
+      console.warn('PDF rasterisation failed:', pdfErr.message, '\nStack:', pdfErr.stack?.substring(0, 300));
       try {
         ({ text, pageCount, pageWidthPt, pageHeightPt } = await extractText(req.file.path));
       } catch {
@@ -57,6 +62,7 @@ router.post('/schematic', upload.single('file'), async (req, res) => {
     }
 
     const session = createSession(uploadId);
+    session.filePath = absFilePath;
     session.pageImages = pages;
     session.extractedText = text;
     session.dpiUsed = dpiUsed;
@@ -164,5 +170,27 @@ async function generateInstrumentsBackground(session, reqId, type, content) {
     console.error('Background instrument generation failed:', err);
   }
 }
+
+// GET /api/upload/page/:uploadId/:pageNum — serve a single page image on demand
+router.get('/page/:uploadId/:pageNum', (req, res) => {
+  try {
+    const session = getSession(req.params.uploadId);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const pageNum = parseInt(req.params.pageNum, 10);
+    const idx = pageNum - 1;
+
+    if (!session.pageImages || !session.pageImages[idx] || session.pageImages[idx].length === 0) {
+      return res.status(404).json({ error: 'Page not found or empty' });
+    }
+
+    const buf = Buffer.from(session.pageImages[idx], 'base64');
+    res.set('Content-Type', 'image/jpeg');
+    res.send(buf);
+  } catch (err) {
+    console.error('Page fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;

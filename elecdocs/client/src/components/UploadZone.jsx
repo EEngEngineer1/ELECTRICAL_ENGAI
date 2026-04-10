@@ -10,6 +10,11 @@ export default function UploadZone({ type = 'schematic' }) {
 
   const handleFile = useCallback(async (file) => {
     if (!file) return;
+    const maxSize = 200 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`File too large (${(file.size / 1024 / 1024).toFixed(0)}MB). Maximum is 200MB.`);
+      return;
+    }
     setUploading(true);
 
     try {

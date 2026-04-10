@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore.js';
 import UploadZone from '../components/UploadZone.jsx';
 import SchematicViewer from '../components/SchematicViewer.jsx';
@@ -5,28 +6,43 @@ import QuestionPanel from '../components/QuestionPanel.jsx';
 import ComponentTable from '../components/ComponentTable.jsx';
 import IOTable from '../components/IOTable.jsx';
 import FieldDeviceTable from '../components/FieldDeviceTable.jsx';
+import ProcessControlPanel from '../components/ProcessControlPanel.jsx';
+
+function useElapsed(running) {
+  const [elapsed, setElapsed] = useState(0);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (running) {
+      setElapsed(0);
+      ref.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } else {
+      clearInterval(ref.current);
+    }
+    return () => clearInterval(ref.current);
+  }, [running]);
+  return elapsed;
+}
 
 export default function AnalysePage() {
   const { uploadId, extracting, setExtracting, setComponents, setFieldDevices } = useStore();
 
+  const elapsed = useElapsed(extracting);
+
   const extractAll = async () => {
     setExtracting(true);
     try {
-      const [compRes, fdRes] = await Promise.all([
-        fetch('/api/extract/components', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uploadId })
-        }),
-        fetch('/api/extract/fielddevices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uploadId })
-        })
+      const results = await Promise.allSettled([
+        fetch('/api/extract/components', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uploadId }) }),
+        fetch('/api/extract/fielddevices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uploadId }) })
       ]);
-      const [compData, fdData] = await Promise.all([compRes.json(), fdRes.json()]);
-      setComponents(compData);
-      setFieldDevices(fdData);
+      if (results[0].status === 'fulfilled') {
+        const compData = await results[0].value.json();
+        if (!compData.error) setComponents(compData);
+      }
+      if (results[1].status === 'fulfilled') {
+        const fdData = await results[1].value.json();
+        if (!fdData.error) setFieldDevices(fdData);
+      }
     } catch (err) {
       alert('Extraction failed: ' + err.message);
     } finally {
@@ -55,7 +71,7 @@ export default function AnalysePage() {
             {extracting ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Extracting — this takes about 30-60 seconds...
+                Extracting... {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
               </span>
             ) : 'Extract Components & Devices'}
           </button>
@@ -64,6 +80,7 @@ export default function AnalysePage() {
         <ComponentTable />
         <IOTable />
         <FieldDeviceTable />
+        <ProcessControlPanel />
       </div>
 
       {/* Right: Chat panel — fixed sidebar */}

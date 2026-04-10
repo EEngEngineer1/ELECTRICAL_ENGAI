@@ -2,11 +2,15 @@ import { Routes, Route, NavLink } from 'react-router-dom';
 import AnalysePage from './pages/AnalysePage.jsx';
 import InstrumentPage from './pages/InstrumentPage.jsx';
 import CrossRefPage from './pages/CrossRefPage.jsx';
+import ReverseEngineerPage from './pages/ReverseEngineerPage.jsx';
+import PnidPage from './pages/PnidPage.jsx';
 
 const navLinks = [
   { to: '/', label: 'Analyse' },
   { to: '/instruments', label: 'Instruments' },
-  { to: '/crossref', label: 'Cross-Reference' }
+  { to: '/crossref', label: 'Cross-Reference' },
+  { to: '/reverseengineer', label: 'Reverse Engineer' },
+  { to: '/pnid', label: 'P&ID' }
 ];
 
 export default function App() {
@@ -37,6 +41,8 @@ export default function App() {
           <Route path="/" element={<AnalysePage />} />
           <Route path="/instruments" element={<InstrumentPage />} />
           <Route path="/crossref" element={<CrossRefPage />} />
+          <Route path="/reverseengineer" element={<ReverseEngineerPage />} />
+          <Route path="/pnid" element={<PnidPage />} />
         </Routes>
       </main>
     </div>

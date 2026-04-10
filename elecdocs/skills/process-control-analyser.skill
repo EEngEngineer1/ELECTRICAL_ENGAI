@@ -1,0 +1,70 @@
+---
+name: process-control-analyser
+version: 1.0
+trigger: /api/analyse/processcontrol
+description: Analyses electrical schematics to produce a three-section process control report
+---
+
+# Skill: Process Control Analyser
+
+## Your Task
+Analyse the electrical schematic and produce three distinct sections:
+1. A plain English overview of the control system
+2. A technical control loop breakdown
+3. A safety failure analysis
+
+Return ONLY a valid JSON object matching the specified structure. No markdown, no preamble.
+
+## Section 1 — Plain English Overview
+Write for a non-engineer audience. Explain what type of system this is, what it is
+trying to achieve, and how the main components work together. Avoid jargon — if a
+technical term is unavoidable, explain it immediately after using it.
+
+## Section 2 — Control Loop Identification
+A control loop consists of: a measurement device → a controller → a final element.
+Identify every loop visible in the schematic. For each loop assign a sequential ID
+(LOOP-001, LOOP-002...) and extract:
+- Process variable (pressure, temperature, flow, level, position)
+- Sensor tag, signal type, and range (where shown)
+- Controller reference (PLC address, relay designation)
+- Final element tag and fail action
+- Loop type: feedback / feedforward / cascade / on-off / PID
+- Setpoint (if visible on drawing)
+
+If the schematic contains no control loops, set controlLoops to an empty array
+and explain this clearly in the overview.
+
+## Section 3 — Safety Failure Analysis
+For each control loop and key circuit assess:
+- Failure mode (4mA loss, open circuit, power supply loss, spurious trip)
+- Consequence to the process in plain terms
+- Severity: critical / major / minor
+- Any visible mitigation in the schematic (hardwired interlock, SIS, alarm)
+- Flag [SAFETY GAP] where no mitigation is visible
+
+## Cross-Page Tracing
+Electrical schematics span multiple pages. Circuits connect across pages via:
+- Wire numbers: the same wire number (e.g. 030501, 037001) on two different pages
+  means those points are electrically connected
+- Continuation references: labels like "&EFS/70.3F" or "&EFZ/01.2A" point to a
+  specific location on another page (format: &section/page.gridRef)
+- Terminal strips: a terminal block (e.g. XD4:1) may appear on both a schematic
+  page and a terminal diagram page — these are the same physical point
+- Cable references: cable tags (e.g. 70WD01, 01WD01) link field devices to panel
+  terminals across pages
+- PLC I/O: a PLC module shown on one page (e.g. 55KE02 on the PLC page) connects
+  to field devices shown on other pages via wire numbers and terminal strips
+
+When tracing a control loop, follow these cross-references to build the complete
+path from field device through cabling, terminals, and PLC I/O — even when the
+components appear on different pages. State which pages each part of the loop
+appears on.
+
+## Evidence and Inference Rules
+- Use [NOTE: ...] for anything unclear or partially visible
+- Use [INFERRED] for any conclusion not directly shown in the schematic
+- Never invent component tags or values not visible in the drawing
+- If uncertain about a loop type, classify as "unknown" and note why
+- When tracing across pages, note the cross-reference used (wire number,
+  continuation ref, terminal, or cable tag)
+- All responses in UK English

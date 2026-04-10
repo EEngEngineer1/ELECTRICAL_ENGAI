@@ -10,6 +10,7 @@ let mainWindow;
 
 function startServer() {
   serverProcess = spawn('node', [path.join(__dirname, '../server/index.js')], {
+    cwd: path.join(__dirname, '..'),
     env: { ...process.env, PORT: '3001' },
     stdio: ['ignore', 'pipe', 'pipe']
   });

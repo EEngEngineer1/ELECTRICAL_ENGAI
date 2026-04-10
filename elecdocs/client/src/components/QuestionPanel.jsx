@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import useStore from '../store/useStore.js';
 
+function cleanMarkdown(text) {
+  return text
+    .replace(/\*\*\*(.*?)\*\*\*/g, '$1')   // ***bold italic***
+    .replace(/\*\*(.*?)\*\*/g, '$1')        // **bold**
+    .replace(/\*(.*?)\*/g, '$1')            // *italic*
+    .replace(/^#{1,6}\s+/gm, '')            // # headings
+    .replace(/^[-*]\s+/gm, '- ')            // normalise bullets
+    .replace(/`([^`]+)`/g, '$1');            // `code`
+}
+
 export default function QuestionPanel() {
   const { uploadId, chatHistory, addChatMessage, updateLastChat, isStreaming, setStreaming, suggestedQuestions, pageCount } = useStore();
   const [question, setQuestion] = useState('');
@@ -105,12 +115,14 @@ export default function QuestionPanel() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {chatHistory.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${
-              msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'
-            }`}>
-              {msg.text}
+            <div className={`max-w-[85%] px-3 py-2 rounded-lg whitespace-pre-wrap ${
+              msg.role === 'user'
+                ? 'bg-blue-600 text-white text-xs'
+                : 'bg-slate-100 text-slate-700 text-xs leading-relaxed'
+            }`} style={{ fontFamily: 'Segoe UI, Calibri, Arial, sans-serif' }}>
+              {msg.role === 'assistant' ? cleanMarkdown(msg.text) : msg.text}
               {msg.role === 'assistant' && msg.text === '' && isStreaming && (
-                <span className="inline-block w-2 h-4 bg-slate-400 animate-pulse ml-1" />
+                <span className="inline-block w-2 h-3 bg-slate-400 animate-pulse ml-1" />
               )}
             </div>
           </div>

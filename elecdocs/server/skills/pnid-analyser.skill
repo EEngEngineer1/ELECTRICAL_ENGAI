@@ -1,0 +1,72 @@
+---
+name: pnid-analyser
+version: 1.0
+trigger: /api/pnid/analyse
+description: Reads P&ID drawings to ISA 5.1 standard, extracts instruments, valves, equipment, process lines, control loops, interlocks
+---
+
+# Skill: P&ID Analyser
+
+## Task
+Read the P&ID drawing and extract a complete structured dataset. Return ONLY valid JSON matching the structure below. No markdown, no preamble.
+
+## ISA 5.1 / ISO 10628 Conventions
+
+Instrument bubbles — circles with letter codes:
+- First letter (measured variable): F=Flow, P=Pressure, T=Temperature, L=Level, A=Analysis, D=Density, E=Voltage, H=Hand, I=Current, J=Power, K=Time, M=Moisture, N=User-defined, Q=Quantity, R=Radiation, S=Speed, U=Multivariable, V=Vibration, W=Weight, X=Unclassified, Y=Event/State, Z=Position/Safety
+- Subsequent letters (function): I=Indicator, C=Controller, T=Transmitter, R=Recorder, S=Switch, V=Valve, Y=Relay/Compute, A=Alarm, H=High, L=Low, HH=High-High, LL=Low-Low, E=Element, G=Glass/Gauge, K=Control Station
+
+Line types: solid heavy=process pipe, solid thin=instrument signal, dashed=electrical, dotted=software/data, double=jacketed pipe.
+
+## Extraction Rules
+
+- Tag numbers: extract exactly as shown, never reformat
+- Use "" for fields not visible
+- Use [NOTE: ...] for partially visible/unclear items
+- Use [INFERRED] for service/function inferred from context
+- Safety: mark isSafetyCritical true if tag contains S, inside safety boundary, or has SIL/SIS annotation
+- UK English throughout
+
+## Required JSON Structure
+
+```json
+{
+  "instruments": [{
+    "tag": "", "service": "", "measuredVariable": "", "function": "",
+    "mounting": "field|panel|DCS", "signalType": "", "associatedLoop": "",
+    "isSafetyCritical": false, "notes": ""
+  }],
+  "valves": [{
+    "tag": "", "type": "control|on-off|relief|check|manual|isolation",
+    "actuatorType": "pneumatic|electric|hydraulic|manual|spring-return",
+    "failPosition": "FC|FO|FL|FS", "normalPosition": "NO|NC",
+    "line": "", "associatedController": "", "isSafetyCritical": false, "notes": ""
+  }],
+  "equipment": [{
+    "tag": "", "type": "vessel|heat exchanger|pump|compressor|column|reactor|tank",
+    "service": "", "keyParameters": "", "connections": [], "notes": ""
+  }],
+  "processLines": [{
+    "lineId": "", "fluidService": "", "sizeSpec": "", "flowDirection": "",
+    "instruments": [], "valves": [], "notes": ""
+  }],
+  "controlLoops": [{
+    "loopId": "", "processVariable": "", "measurementElement": "",
+    "transmitter": "",
+    "controller": { "tag": "", "type": "PID|on-off|ratio" },
+    "finalElement": { "tag": "", "type": "", "failPosition": "" },
+    "setpointSource": "local|remote|cascade", "cascadeFrom": "", "notes": ""
+  }],
+  "interlocks": [{
+    "interlockId": "", "type": "process|SIF|ESD",
+    "initiator": "", "tripCondition": "", "action": "",
+    "silRating": "", "safetyBoundary": false, "notes": ""
+  }],
+  "summary": {
+    "totalInstruments": 0, "totalValves": 0, "totalEquipment": 0,
+    "totalProcessLines": 0, "totalControlLoops": 0, "totalInterlocks": 0,
+    "safetyCriticalInstruments": 0, "safetyCriticalValves": 0,
+    "dataQuality": "high|medium|low"
+  }
+}
+```

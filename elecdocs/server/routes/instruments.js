@@ -8,7 +8,7 @@ const router = Router();
 // POST /api/instruments/generate
 router.post('/generate', async (req, res) => {
   try {
-    const { uploadId, reqIds } = req.body;
+    const { uploadId, reqIds, fieldDevices: clientFD } = req.body;
     const session = getSession(uploadId);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
@@ -23,7 +23,7 @@ router.post('/generate', async (req, res) => {
       images: [],
       extractedText: '',
       systemPrompt: skill,
-      userPrompt: `Parse these requirement documents and extract a complete instrumentation list. Return JSON with "instruments" array and "summary" object.\n\n${reqContents}`
+      userPrompt: `Parse these requirement documents and extract a complete instrumentation list with instruments array.\n\nDocument content:\n${reqContents}`
     });
 
     // Store instruments in session
@@ -33,8 +33,9 @@ router.post('/generate', async (req, res) => {
     }
 
     // If field devices available, auto-verify
-    if (session.fieldDevices) {
-      verifyCoverage(result, session.fieldDevices);
+    const fdData = session.fieldDevices || (clientFD?.length ? { fieldDevices: clientFD } : null);
+    if (fdData) {
+      verifyCoverage(result, fdData);
     }
 
     res.json(result);
@@ -47,10 +48,13 @@ router.post('/generate', async (req, res) => {
 // POST /api/instruments/verify
 router.post('/verify', async (req, res) => {
   try {
-    const { uploadId, reqIds } = req.body;
+    const { uploadId, reqIds, fieldDevices: clientFieldDevices } = req.body;
     const session = getSession(uploadId);
     if (!session) return res.status(404).json({ error: 'Session not found' });
-    if (!session.fieldDevices) return res.status(400).json({ error: 'Field devices not yet extracted' });
+
+    // Use session field devices if available, otherwise fall back to client-provided data
+    const fieldDeviceData = session.fieldDevices || (clientFieldDevices ? { fieldDevices: clientFieldDevices } : null);
+    if (!fieldDeviceData) return res.status(400).json({ error: 'Field devices not yet extracted' });
 
     // Collect all instruments from requirements
     const allInstruments = [];
@@ -61,8 +65,11 @@ router.post('/verify', async (req, res) => {
       }
     }
 
-    const fieldDevices = session.fieldDevices.fieldDevices || [];
-    const result = verifyCoverage({ instruments: allInstruments }, session.fieldDevices);
+    if (allInstruments.length === 0) {
+      return res.status(400).json({ error: 'No instruments found. Click "Generate Instrumentation List" first, then verify.' });
+    }
+
+    const result = verifyCoverage({ instruments: allInstruments }, fieldDeviceData);
 
     res.json(result);
   } catch (err) {
@@ -77,14 +84,15 @@ function verifyCoverage(instrumentData, fieldDeviceData) {
 
   const fdByTag = new Map();
   for (const fd of fieldDevices) {
-    if (fd.tagNumber) fdByTag.set(fd.tagNumber.toUpperCase(), fd);
+    const fdTag = fd.tagNumber || fd.tag || '';
+    if (fdTag) fdByTag.set(fdTag.toUpperCase(), fd);
   }
 
   let matched = 0, tagOnly = 0, missing = 0;
   const missingItems = [];
 
   for (const inst of instruments) {
-    const tag = (inst.tagNumber || '').toUpperCase();
+    const tag = (inst.tagNumber || inst.tag || '').toUpperCase();
     const fd = fdByTag.get(tag);
 
     if (fd) {
